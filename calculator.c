@@ -1,134 +1,189 @@
 #include<stdio.h>
 #include<ctype.h>
-#define stack_size 100
-int stack[100];
-int ind=-1;
-char op_stack[100];
-int op_ind=-1;
-int res=-1;
-int precedence(char ch){
-    if(ch=='+' || ch=='-'){
+#define MAX_SIZE 100
+int operand_stack[MAX_SIZE];
+int top_operand=-1;
+char operator_stack[MAX_SIZE];
+int top_operator=-1;
+
+int precedence_operator(char operator){
+    if(operator=='+' || operator=='-'){
         return 1;
     }
-    else if(ch=='*' || ch=='/'){
+    else if(operator=='*' || operator=='/'){
         return 2;
     }
     return 0;
 }
-void push(int n){
-    if(ind<stack_size-1){
-    stack[++ind]=n;
+
+void push_operand(int operand){
+    if(top_operand<MAX_SIZE-1){
+    operand_stack[++top_operand]=operand;
     }
 }
-int pop(int *error){
-    if(ind<0){
+
+int pop_operand(int *error){
+    if(top_operand<0){
         *error=1;
         return 0;
     }
-    int popped_value=stack[ind--];
+    int popped_value=operand_stack[top_operand--];
     return popped_value;
 }
-void push_op(char s){
-    if(op_ind<stack_size-1){
-        op_stack[++op_ind]=s;
+
+void push_operator(char operator){
+    if(top_operator<MAX_SIZE-1){
+        operator_stack[++top_operator]=operator;
     }
 }
-char pop_op(int *error){
-    if(op_ind<0){
+
+char pop_operator(int *error){
+    if(top_operator<0){
         *error=1;
         return '\0';
     }
-    char pop_value=op_stack[op_ind--];
+    char pop_value=operator_stack[top_operator--];
     return pop_value;
 }
-int calculate(int a,int b,char ch,int *error){
-    if(ch=='+'){
-        return a+b;
+
+int calculate_operation(int left_operand,int right_operand,char operator,int *error){
+    if(operator=='+'){
+        return left_operand+right_operand;
     }
-    else if(ch=='-')
-    return a-b;
-    else if(ch=='*')
-    return a*b;
-    else if(ch=='/'){
-        if(b==0){
+    else if(operator=='-'){
+        return left_operand-right_operand;
+    }
+    else if(operator=='*'){
+        return left_operand*right_operand;
+    }
+    else if(operator=='/'){
+        if(right_operand==0){
             *error=2;
             return 0;
         }
-        else{
-            return a/b;
-        }
+        return left_operand/right_operand;
     }
     else{
         *error=1;
         return 0;
     }
 }
-int evaluate(char str[],int *error){
+
+int evaluate_expression(char expression[],int *error){
     int i=0;
     int expect_num=1;
-    while(str[i]!='\0'){
-    if(isspace(str[i])){
-        i++;
-        continue;
-    }
-    else if(isdigit(str[i])){
-        int curr_num=0;
-        while(isdigit(str[i])){
-           curr_num=curr_num*10+(str[i]-'0');
-           i++;
+    top_operand=-1;
+    top_operator=-1;
+    *error=0;
+    while(expression[i]!='\0'){
+        if(isspace((unsigned char)expression[i])){
+            i++;
+            continue;
         }
-        push(curr_num);
-        expect_num=0;
-    }
-    else if(str[i]=='+' || str[i]=='-' || str[i]=='*' || str[i]=='/'){
-        if(expect_num){
+        if(isdigit((unsigned char)expression[i])){
+            int curr_num=0;
+            while(1){
+                if(isdigit((unsigned char)expression[i])){
+                    curr_num=curr_num*10+(expression[i]-'0');
+                    i++;
+                }
+                else if(isspace((unsigned char)expression[i])){
+                    int j=i;
+                    while(isspace((unsigned char)expression[j])){
+                        j++;
+                    }
+                    if(isdigit((unsigned char)expression[j])){
+                        i=j;
+                    }
+                    else{
+                        break;
+                    }
+                }
+                else{
+                    break;
+                }
+            }
+            if(!expect_num){
+                *error=1;
+                return 0;
+            }
+            push_operand(curr_num);
+            expect_num=0;
+        }
+        else if(expression[i]=='+' || expression[i]=='-' || expression[i]=='*' || expression[i]=='/'){
+            if(expect_num){
+                *error=1;
+                return 0;
+            }
+            while(top_operator!=-1 && precedence_operator(operator_stack[top_operator])>=precedence_operator(expression[i])){
+                int right_operand=pop_operand(error);
+                int left_operand=pop_operand(error);
+                char operator=pop_operator(error);
+
+                if(*error){
+                    return 0;
+                }
+
+                int result=calculate_operation(left_operand,right_operand,operator,error);
+
+                if(*error){
+                    return 0;
+                }
+
+                push_operand(result);
+            }
+
+            push_operator(expression[i]);
+            i++;
+            expect_num=1;
+        }
+        else{
             *error=1;
             return 0;
         }
-        while(op_ind!=-1 && precedence(op_stack[op_ind])>=precedence(str[i])){
-        int b=pop(error);
-        int a=pop(error);
-        char ch=pop_op(error);
+    }
+
+    if(expect_num){
+        *error=1;
+        return 0;
+    }
+
+    while(top_operator!=-1){
+        int right_operand=pop_operand(error);
+        int left_operand=pop_operand(error);
+        char operator=pop_operator(error);
+
         if(*error){
             return 0;
         }
-        int res=calculate(a,b,ch,error);
+
+        int result=calculate_operation(left_operand,right_operand,operator,error);
+
         if(*error){
             return 0;
         }
-        push(res);
-        }
-        push_op(str[i]);
-        i++;
-        expect_num=1;
+
+        push_operand(result);
     }
-    else{
-     *error=1;
-     return 0;
+
+    if(top_operand!=0){
+        *error=1;
+        return 0;
     }
+
+    return operand_stack[top_operand];
 }
-if(expect_num){
-    *error=1;
-    return 0;
-}
-while(op_ind!=-1){
-    int b=pop(error);
-    int a=pop(error);
-    char ch=pop_op(error);
-    if(*error)
-    return 0;
-    int res=calculate(a,b,ch,error);
-    if(*error)
-    return 0;
-    push(res);
-}
-return stack[ind];
-}
+
 int main(){
-    char str[100];
-    fgets(str,sizeof(str),stdin);
+    char expression[MAX_SIZE];
+    printf("Enter an expression: ");
+    fflush(stdout);
+    if(fgets(expression,sizeof(expression),stdin)==NULL){
+        printf("Error: Invalid expression.\n");
+        return 1;
+    }
     int error=0;
-    int res=evaluate(str,&error);
+    int result=evaluate_expression(expression,&error);
     if(error==1){
         printf("Error: Invalid expression.");
     }
@@ -136,6 +191,7 @@ int main(){
         printf("Error: Division by zero.");
     }
     else{
-    printf("%d ",res);
+        printf("%d ",result);
     }
+    return 0;
 }
