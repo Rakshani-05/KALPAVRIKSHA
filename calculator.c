@@ -177,7 +177,6 @@ int evaluate_expression(char expression[],int *error){
 int main(){
     char expression[MAX_SIZE];
     printf("Enter an expression: ");
-    fflush(stdout);
     if(fgets(expression,sizeof(expression),stdin)==NULL){
         printf("Error: Invalid expression.\n");
         return 1;
