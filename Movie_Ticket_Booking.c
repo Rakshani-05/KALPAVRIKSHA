@@ -4,10 +4,25 @@
 #include<ctype.h>
 #include<errno.h>
 
-#define STANDARD_PRICE 150
-#define PREMIUM_PRICE  250
-#define RECLINER_PRICE 400
+const int STANDARD_PRICE=150;
+const int PREMIUM_PRICE=250;
+const int RECLINER_PRICE=400;
+const float DISCOUNT_RATE=0.10F;
+
+#define MIN_TICKETS 1
 #define MAX_TICKETS 20
+#define DISCOUNT_MIN_TICKETS 5
+#define MIN_CATEGORY 1
+#define MAX_CATEGORY 3
+
+struct Bill{
+    const char *name;
+    const char *category;
+    int tickets;
+    float subtotal;
+    float discount;
+    float final_bill;
+};
 
 int read_line(char input[],int size){
     if(fgets(input,size,stdin)==NULL){
@@ -112,21 +127,21 @@ float calculate_subtotal(int tickets,int price){
 }
 
 float calculate_discount(float subtotal,int tickets){
-    if(tickets>=5){
-        return subtotal*0.10f;
+    if(tickets>=DISCOUNT_MIN_TICKETS){
+        return subtotal*DISCOUNT_RATE;
     }
     else{
         return 0.0f;
     }
 }
 
-void display_bill(const char *name,const char *category,int tickets,float subtotal,float discount,float final_bill){
-    printf("\nCustomer: %s\n",name);
-    printf("Ticket Categroy: %s\n",category);
-    printf("Tickets: %d\n",tickets);
-    printf("Subtotal: %.2f\n",subtotal);
-    printf("Discount: %.2f\n",discount);
-    printf("Final bill: %.2f",final_bill);
+void display_bill(const struct Bill *bill){
+    printf("\nCustomer: %s\n",bill->name);
+    printf("Ticket Categroy: %s\n",bill->category);
+    printf("Tickets: %d\n",bill->tickets);
+    printf("Subtotal: %.2f\n",bill->subtotal);
+    printf("Discount: %.2f\n",bill->discount);
+    printf("Final bill: %.2f",bill->final_bill);
 }
 
 int main(){
@@ -137,17 +152,25 @@ int main(){
     
     read_customer_name(customer_name);
     
-    tickets=read_integer("Enter number of tickets (1-20): ",1,MAX_TICKETS);
+    tickets=read_integer("Enter number of tickets (1-20): ",MIN_TICKETS,MAX_TICKETS);
     
-    choice=read_integer("Enter ticket category (1-Standard, 2-Premium, 3-Recliner): ",1,3);
+    choice=read_integer("Enter ticket category (1-Standard, 2-Premium, 3-Recliner): ",MIN_CATEGORY,MAX_CATEGORY);
     
     ticket_price=get_ticket_price(choice,&category);
     
     subtotal=calculate_subtotal(tickets,ticket_price);
     discount=calculate_discount(subtotal,tickets);
     final_bill=subtotal-discount;
+
+    struct Bill bill;
+    bill.name=customer_name;
+    bill.category=category;
+    bill.tickets=tickets;
+    bill.subtotal=subtotal;
+    bill.discount=discount;
+    bill.final_bill=final_bill;
     
-    display_bill(customer_name,category,tickets,subtotal,discount,final_bill);
+    display_bill(&bill);
     
     return 0;
 }
